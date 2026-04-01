@@ -1474,7 +1474,7 @@ export async function deletePMResultRow(resultId) {
   const id = resultId ?? Number($('pmre-id')?.value || 0);
   if (!id) return;
   try {
-    await apiFirst(['pm/result/delete'], { method: 'POST', body: JSON.stringify({ id }) });
+    await apiFirst(['pm/result/delete'], { method: 'POST', body: JSON.stringify({ id, result_id: id }) });
     closeModal('modal-pm-result-edit');
     await loadPMResultsForEquip(selectedPMEquip);
     const detailView = $('pmh-detail-view');
@@ -1492,7 +1492,7 @@ export async function deletePMResultMonth(checkMonth) {
   try {
     for (const r of allResults) {
       const id = Number(pick(r.id, r.result_id, 0));
-      if (id) await apiFirst(['pm/result/delete'], { method: 'POST', body: JSON.stringify({ id }) });
+      if (id) await apiFirst(['pm/result/delete'], { method: 'POST', body: JSON.stringify({ id, result_id: id }) });
     }
     await loadPMResultsForEquip(selectedPMEquip);
     showPMHistoryList();

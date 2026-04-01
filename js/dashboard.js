@@ -124,21 +124,31 @@ export async function loadDashboard() {
 
   const mttrTop = [...statsRows].sort((a, b) => num(b.mttr_min) - num(a.mttr_min)).slice(0, 8);
   const mtbfTop = [...statsRows].sort((a, b) => num(b.mtbf_day) - num(a.mtbf_day)).slice(0, 8);
-  renderChart('ds-chart-monthly', 'line', monthlyTrend.map((r) => r.month), monthlyTrend.map((r) => num(r.count)), '월별 고장');
-
-  // 라인별 월별 고장 분포 (멀티라인 차트)
-  (function buildLocationMonthly() {
+  // 날짜 → YYYY-MM 정규화 (MySQL zero-padding 없는 형식 대응)
+  const toYM = (r) => {
+    const raw = pick(r.report_dt, r.created_at, '');
+    if (!raw) return '';
+    const d = new Date(raw);
+    if (isNaN(d)) return String(raw).substring(0, 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  // 월별/라인별 — 동일 데이터(reports)로 계산
+  (function buildMonthlyCharts() {
     const now = new Date();
     const months = Array.from({ length: 12 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     });
+    // 전체 합산
+    const monthlyCounts = months.map(m => reports.filter(r => toYM(r) === m).length);
+    renderChart('ds-chart-monthly', 'line', months, monthlyCounts, '월별 고장');
+    // 라인별 멀티라인
     const locCount = {};
     reports.forEach((r) => { const loc = pick(r.location, '미분류'); locCount[loc] = (locCount[loc] || 0) + 1; });
-    const topLocs = Object.entries(locCount).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([l]) => l);
+    const topLocs = Object.entries(locCount).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([l]) => l);
     const datasets = topLocs.map((loc) => ({
       label: loc,
-      data: months.map((m) => reports.filter((r) => String(pick(r.report_dt, r.created_at, '')).startsWith(m) && pick(r.location, '미분류') === loc).length),
+      data: months.map((m) => reports.filter((r) => toYM(r) === m && pick(r.location, '미분류') === loc).length),
     }));
     renderMultiLineChart('ds-chart-location', months, datasets);
   })();

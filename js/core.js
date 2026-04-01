@@ -35,7 +35,15 @@ export function isPlanned(value) { return ['P', 'D', '1', 1, true, 'Y'].includes
 export function $(id) { return document.getElementById(id); }
 export function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
 export function num(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) ? n : fallback; }
-export function pick(...values) { for (const value of values) { if (value !== undefined && value !== null && String(value).trim() !== '') return value; } return ''; }
+export function pick(...values) {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (!text || text === 'undefined' || text === 'null') continue;
+    return value;
+  }
+  return '';
+}
 export function normalizeStatus(value) { const v = String(value ?? '').trim(); if (!v) return '접수'; if (v.includes('확인')) return '확인중'; if (v.includes('수리')) return '수리중'; if (v.includes('완료') || v.includes('조치')) return '완료'; return v; }
 export function setConnection(ok, text) { const dot = $('conn-dot'); const label = $('conn-text'); if (dot) dot.className = `conn-dot ${ok ? 'ok' : 'err'}`; if (label) label.textContent = text; }
 export async function api(path, options = {}) { const url = `${state.baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`; const headers = new Headers(options.headers || {}); headers.set('ngrok-skip-browser-warning', 'true'); if (options.body && !headers.has('Content-Type') && !(options.body instanceof FormData)) { headers.set('Content-Type', 'application/json'); } const response = await fetch(url, { ...options, headers }); const text = await response.text(); let data = {}; try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; } if (!response.ok) { throw new Error(data.message || data.error || `${response.status} ${response.statusText}`); } return data; }

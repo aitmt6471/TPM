@@ -1,5 +1,5 @@
 import { state, CACHE_KEYS, $, num, pick, escapeHtml, formatDate, getRows, saveCache, loadCache, apiFirst } from './core.js';
-import { renderChart, renderHBarChart } from './ui.js';
+import { renderChart, renderHBarChart, renderMultiLineChart } from './ui.js';
 
 function topN(rows, keyFn, n = 10) {
   const map = {};
@@ -72,9 +72,34 @@ export async function loadStats() {
   if (statsRes.status === 'fulfilled')   saveCache(CACHE_KEYS.stats,   statsPayload);
   if (reportRes.status === 'fulfilled')  saveCache(CACHE_KEYS.reports,  reports);
 
-  // 기존 차트 4종
-  renderChart('chart-monthly',  'line', monthlyTrend.map(r => r.month), monthlyTrend.map(r => num(r.count)), '월별 건수');
-  renderChart('chart-location', 'line', byLocation.map(r => pick(r.location, '미분류')), byLocation.map(r => num(r.count)), '설치소별 건수');
+  // 날짜 → YYYY-MM 정규화 (MySQL zero-padding 없는 형식 대응)
+  const toYM = (r) => {
+    const raw = pick(r.report_dt, r.created_at, '');
+    if (!raw) return '';
+    const d = new Date(raw);
+    if (isNaN(d)) return String(raw).substring(0, 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  // 월별/라인별 — 동일 데이터(reports)로 계산
+  (function buildMonthlyCharts() {
+    const now = new Date();
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    });
+    // 전체 합산
+    const monthlyCounts = months.map(m => reports.filter(r => toYM(r) === m).length);
+    renderChart('chart-monthly', 'line', months, monthlyCounts, '월별 건수');
+    // 라인별 멀티라인
+    const locCount = {};
+    reports.forEach(r => { const loc = pick(r.location, '미분류'); locCount[loc] = (locCount[loc] || 0) + 1; });
+    const topLocs = Object.entries(locCount).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([l]) => l);
+    const datasets = topLocs.map(loc => ({
+      label: loc,
+      data: months.map(m => reports.filter(r => toYM(r) === m && pick(r.location, '미분류') === loc).length),
+    }));
+    renderMultiLineChart('chart-location', months, datasets);
+  })();
   renderChart('chart-mtbf', 'bar', statsRows.map(r => pick(r.equip_code)), statsRows.map(r => {
     const b = Math.max(num(r.total_breakdowns), 1);
     return num(r.total_downtime) / b / 1440;
