@@ -394,7 +394,6 @@ export async function submitHistoryAction() {
 export function showQR(code, name) {
   const base = window.location.href.replace(/\/[^/]*$/, '/');
   const url = `${base}report.html?equip=${encodeURIComponent(code)}`;
-  const qrImg = `https://chart.googleapis.com/chart?chs=260x260&cht=qr&chl=${encodeURIComponent(url)}&choe=UTF-8`;
 
   let overlay = document.getElementById('_qr_overlay');
   if (!overlay) {
@@ -408,14 +407,22 @@ export function showQR(code, name) {
     <div style="background:#fff;border-radius:20px;padding:32px 28px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.25);min-width:300px">
       <div style="font-size:13px;color:#64748b;margin-bottom:4px">${escapeHtml(code)}</div>
       <div style="font-size:17px;font-weight:700;margin-bottom:18px">${escapeHtml(name)}</div>
-      <img src="${qrImg}" style="width:260px;height:260px;border-radius:8px;display:block;margin:0 auto" />
+      <canvas id="_qr_canvas" style="border-radius:8px;display:block;margin:0 auto"></canvas>
       <div style="font-size:10px;color:#94a3b8;margin-top:10px;word-break:break-all">${url}</div>
       <div style="display:flex;gap:10px;margin-top:18px;justify-content:center">
-        <button onclick="window.open('${qrImg}','_blank')" style="padding:8px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:13px">🖨️ 이미지 저장</button>
+        <button id="_qr_save_btn" style="padding:8px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;cursor:pointer;font-size:13px">🖨️ 이미지 저장</button>
         <button onclick="document.getElementById('_qr_overlay').remove()" style="padding:8px 18px;border-radius:8px;border:none;background:#1d4ed8;color:#fff;cursor:pointer;font-size:13px">닫기</button>
       </div>
     </div>`;
-  document.body.appendChild(overlay);
+
+  QRCode.toCanvas(document.getElementById('_qr_canvas'), url, { width: 260, margin: 2 }, () => {});
+
+  document.getElementById('_qr_save_btn').onclick = () => {
+    const a = document.createElement('a');
+    a.download = `QR_${code}.png`;
+    a.href = document.getElementById('_qr_canvas').toDataURL();
+    a.click();
+  };
 }
 
 export async function deleteHistoryReport() {
