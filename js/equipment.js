@@ -358,7 +358,32 @@ export function openHistorySlideOver(idx) {
   document.getElementById('so-status').value = pick(row.status, '');
   document.getElementById('so-tech').value = pick(row.technician, '');
   document.getElementById('so-detail').value = pick(row.action_detail, '');
-  document.getElementById('so-downtime').value = pick(row.downtime_min, '');
+  // 다운타임: 기존 값 있으면 그대로, 없으면 접수시각→현재 자동 계산
+  const soDowntime = document.getElementById('so-downtime');
+  const reportDt = pick(row.report_dt, '');
+  soDowntime.dataset.reportDt = reportDt;
+  const existingDt = num(pick(row.downtime_min, 0));
+  if (existingDt > 0) {
+    soDowntime.value = existingDt;
+  } else if (reportDt) {
+    const autoMin = Math.round((Date.now() - new Date(reportDt)) / 60000);
+    soDowntime.value = autoMin > 0 ? autoMin : '';
+  } else {
+    soDowntime.value = '';
+  }
+  // 상태를 '완료'로 변경 시 다운타임 재계산 (빈 값일 때만)
+  const soStatus = document.getElementById('so-status');
+  if (soStatus) {
+    soStatus.onchange = () => {
+      if (soStatus.value === '완료') {
+        const dt = document.getElementById('so-downtime');
+        const rDt = dt.dataset.reportDt;
+        if (rDt && (!dt.value || dt.value === '0')) {
+          dt.value = Math.round((Date.now() - new Date(rDt)) / 60000);
+        }
+      }
+    };
+  }
   // 편집 폼 초기 숨김, 토글 버튼 복원
   const editSection = document.getElementById('so-edit-section');
   if (editSection) editSection.style.display = 'none';

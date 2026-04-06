@@ -101,8 +101,10 @@ export async function loadStats() {
     renderMultiLineChart('chart-location', months, datasets);
   })();
   renderChart('chart-mtbf', 'bar', statsRows.map(r => pick(r.equip_code)), statsRows.map(r => {
-    const b = Math.max(num(r.total_breakdowns), 1);
-    return num(r.total_downtime) / b / 1440;
+    const b = num(r.total_breakdowns);
+    if (b <= 0) return 0;
+    const operatingDays = Math.max(0, 365 - num(r.total_downtime) / 1440);
+    return operatingDays / b;
   }), '설비별 MTBF(일)');
   renderChart('chart-mttr', 'bar', statsRows.map(r => pick(r.equip_code)), statsRows.map(r => num(r.mttr_min)), '설비별 MTTR(분)');
 
@@ -110,7 +112,7 @@ export async function loadStats() {
   $('mtbf-tbody').innerHTML = statsRows.slice(0, 20).map(row => {
     const b = num(row.total_breakdowns);
     const d = num(row.total_downtime);
-    const mtbf = b > 0 ? (d / b / 1440) : 0;
+    const mtbf = b > 0 ? Math.max(0, 365 - d / 1440) / b : 0;
     return `<tr><td>${escapeHtml(pick(row.equip_code))}</td><td>${escapeHtml(pick(row.equip_name))}</td><td>${escapeHtml(pick(row.location, '미분류'))}</td><td>${b.toLocaleString()}</td><td>${d.toLocaleString()}</td><td>${mtbf.toFixed(1)}</td><td>${num(row.mttr_min).toFixed(1)}</td><td>${escapeHtml(formatDate(pick(row.last_fault_dt)))}</td></tr>`;
   }).join('') || '<tr><td colspan="8">데이터 없음</td></tr>';
 
