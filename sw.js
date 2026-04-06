@@ -15,7 +15,7 @@ self.addEventListener('activate', event => {
 
 // ── 푸시 수신 ────────────────────────────────────────────────
 self.addEventListener('push', event => {
-  let data = { title: 'AIT TPM 알림', body: '새 알림이 있습니다.', url: '/TPM/report.html' };
+  let data = { title: '🚨 고장 접수 — AIT TPM', body: '새 고장이 접수되었습니다. 확인해주세요.', url: '/TPM/report.html' };
   try {
     if (event.data) data = { ...data, ...event.data.json() };
   } catch (e) {
