@@ -72,11 +72,14 @@ export async function subscribePush(baseUrl, userLabel = '') {
     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
   });
 
-  const sub = subscription.toJSON();
+  const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const p256dh = toB64(subscription.getKey('p256dh'));
+  const auth   = toB64(subscription.getKey('auth'));
+  if (!subscription.endpoint || !p256dh || !auth) throw new Error('구독 정보 생성 실패');
   const payload = {
-    endpoint:   sub.endpoint,
-    p256dh:     sub.keys.p256dh,
-    auth:       sub.keys.auth,
+    endpoint:   subscription.endpoint,
+    p256dh,
+    auth,
     user_label: userLabel || navigator.userAgent.substring(0, 80),
     device_info: `${navigator.platform} / ${navigator.userAgent.substring(0, 60)}`
   };

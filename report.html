@@ -2615,12 +2615,16 @@
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
           });
-          const s = sub.toJSON();
+          // getKey() 방식 — toJSON()보다 브라우저 호환성 높음
+          const toB64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+          const p256dh = toB64(sub.getKey('p256dh'));
+          const auth   = toB64(sub.getKey('auth'));
+          if (!sub.endpoint || !p256dh || !auth) throw new Error('구독 정보 생성 실패');
           await fetch(`${BASE}/push/subscribe`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              endpoint: s.endpoint, p256dh: s.keys.p256dh, auth: s.keys.auth,
+              endpoint: sub.endpoint, p256dh, auth,
               user_label: navigator.userAgent.substring(0, 80),
               device_info: navigator.platform
             })
