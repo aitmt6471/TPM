@@ -341,16 +341,41 @@ export function openHistorySlideOver(idx) {
   const panel = document.getElementById('history-slideover');
   const bg = document.getElementById('history-slideover-bg');
   if (!panel || !bg) return;
-  const photoUrl = pick(row.report_photo, row.photo_url);
+  const reportPhoto = pick(row.report_photo, row.photo_url);
+  const actionPhoto = pick(row.action_photo, '');
+  const validPhoto = v => (v && v !== 'undefined' && v !== 'null') ? v : '';
+  const rp = validPhoto(reportPhoto);
+  const ap = validPhoto(actionPhoto);
+
+  const photoSection = (rp || ap) ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-align:center">📷 고장접수 사진</div>
+        ${rp
+          ? `<a href="${escapeHtml(rp)}" target="_blank" rel="noopener noreferrer">
+               <img src="${escapeHtml(rp)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:block;" />
+             </a>`
+          : `<div style="width:100%;aspect-ratio:4/3;background:#f3f4f6;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:flex;align-items:center;justify-content:center;font-size:11px;color:#9ca3af">없음</div>`}
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-align:center">🔧 조치 사진</div>
+        ${ap
+          ? `<a href="${escapeHtml(ap)}" target="_blank" rel="noopener noreferrer">
+               <img src="${escapeHtml(ap)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:block;" />
+             </a>`
+          : `<div style="width:100%;aspect-ratio:4/3;background:#f3f4f6;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:flex;align-items:center;justify-content:center;font-size:11px;color:#9ca3af">없음</div>`}
+      </div>
+    </div>` : '';
+
   document.getElementById('so-info').innerHTML = `
+    ${photoSection}
     <table style="width:100%;border-collapse:collapse;font-size:14px">
       <tbody>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;color:var(--text3);width:30%">접수 #</td><td style="padding:8px 12px;font-weight:700">${escapeHtml(pick(row.report_id,'-'))}</td><td style="padding:8px 12px;color:var(--text3)">유형</td><td style="padding:8px 12px">${escapeHtml(pick(row.report_type,'-'))}</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;color:var(--text3)">접수일시</td><td style="padding:8px 12px">${escapeHtml(pick(row.report_dt,'-'))}</td><td style="padding:8px 12px;color:var(--text3)">상태</td><td style="padding:8px 12px">${renderStatusBadge(pick(row.status,'-'))}</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;color:var(--text3)">신고자</td><td style="padding:8px 12px">${escapeHtml(pick(row.reporter,'-'))}</td><td style="padding:8px 12px;color:var(--text3)">처리일시</td><td style="padding:8px 12px">${escapeHtml(pick(row.action_dt,'-'))}</td></tr>
         <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;color:var(--text3)">증상</td><td colspan="3" style="padding:8px 12px;font-weight:600;white-space:pre-wrap">${escapeHtml(pick(row.symptom,'-'))}</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;color:var(--text3)">조치내용</td><td colspan="3" style="padding:8px 12px;white-space:pre-wrap">${escapeHtml(pick(row.action_detail,'-'))}</td></tr>
-        ${photoUrl ? `<tr><td style="padding:8px 12px;color:var(--text3)">사진</td><td colspan="3" style="padding:8px 12px"><a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(photoUrl)}" style="max-height:120px;border-radius:8px;object-fit:contain" /></a></td></tr>` : ''}
+        <tr><td style="padding:8px 12px;color:var(--text3)">조치내용</td><td colspan="3" style="padding:8px 12px;white-space:pre-wrap">${escapeHtml(pick(row.action_detail,'-'))}</td></tr>
       </tbody>
     </table>`;
   document.getElementById('so-report-id').value = pick(row.report_id, '');
