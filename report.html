@@ -1121,6 +1121,21 @@
           <div id="sRes" style="margin-top:8px;font-size:12px"></div>
         </div>
       </div>
+
+      <!-- 🔔 푸시 알람 카드 -->
+      <div class="card" style="margin-top:12px">
+        <div class="card-h">🔔 푸시 알람</div>
+        <div class="card-b">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px">
+            고장 접수 및 조치 완료 시 이 기기로 알림을 받습니다.
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-p btn-sm" id="pushToggleBtn" onclick="handlePushToggle()">🔔 알림 허용</button>
+            <span id="pushStatusTxt" style="font-size:12px;color:var(--text3)">상태 확인 중...</span>
+          </div>
+          <div id="pushMsg" style="margin-top:8px;font-size:12px;color:var(--danger)"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2530,6 +2545,114 @@
     }
 
     init();
+
+    // ── 🔔 푸시 알람 ────────────────────────────────────────────
+    const VAPID_PUBLIC_KEY = 'BOlKEi1aeqzga8xXmB2xvlfs7b4IYmvhCgBX8lepOHPUiHmFRRl8PlW8djZrtwif1Z_LC6Gf3veV_tcKQG_K09A';
+
+    function urlBase64ToUint8Array(b64) {
+      const pad = '='.repeat((4 - b64.length % 4) % 4);
+      const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+      return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    function isPushSupported() {
+      return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    }
+
+    async function getPushStatus() {
+      if (!isPushSupported()) return 'unsupported';
+      if (Notification.permission === 'denied') return 'denied';
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        return sub ? 'subscribed' : 'unsubscribed';
+      } catch { return 'unsubscribed'; }
+    }
+
+    async function updatePushUI() {
+      const btn = document.getElementById('pushToggleBtn');
+      const txt = document.getElementById('pushStatusTxt');
+      if (!isPushSupported()) {
+        if (btn) btn.style.display = 'none';
+        if (txt) txt.textContent = '이 브라우저는 푸시 미지원';
+        return;
+      }
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS && !window.navigator.standalone) {
+        if (btn) btn.style.display = 'none';
+        if (txt) txt.textContent = '홈화면 추가 후 알림 사용 가능 (iOS)';
+        return;
+      }
+      const status = await getPushStatus();
+      if (status === 'subscribed') {
+        if (btn) { btn.textContent = '🔕 알림 해제'; btn.dataset.action = 'off'; }
+        if (txt) txt.textContent = '✅ 알림 켜짐';
+      } else if (status === 'denied') {
+        if (btn) btn.style.display = 'none';
+        if (txt) txt.textContent = '🚫 브라우저 설정에서 알림이 차단됨';
+      } else {
+        if (btn) { btn.textContent = '🔔 알림 허용'; btn.dataset.action = 'on'; }
+        if (txt) txt.textContent = '알림이 꺼져 있습니다';
+      }
+    }
+
+    async function handlePushToggle() {
+      const btn = document.getElementById('pushToggleBtn');
+      const msg = document.getElementById('pushMsg');
+      const action = btn?.dataset.action || 'on';
+      msg.textContent = '';
+      try {
+        if (action === 'on') {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') throw new Error('알림 권한이 거부되었습니다.');
+          const swPath = location.hostname === 'aitmt6471.github.io' ? '/TPM/sw.js' : '/sw.js';
+          const scope  = location.hostname === 'aitmt6471.github.io' ? '/TPM/' : '/';
+          const reg = await navigator.serviceWorker.register(swPath, { scope });
+          await navigator.serviceWorker.ready;
+          const existing = await reg.pushManager.getSubscription();
+          if (existing) await existing.unsubscribe();
+          const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          });
+          const s = sub.toJSON();
+          await fetch(`${BASE}/push/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              endpoint: s.endpoint, p256dh: s.keys.p256dh, auth: s.keys.auth,
+              user_label: navigator.userAgent.substring(0, 80),
+              device_info: navigator.platform
+            })
+          });
+          msg.style.color = 'var(--success, #16a34a)';
+          msg.textContent = '✅ 알림이 켜졌습니다!';
+        } else {
+          const reg = await navigator.serviceWorker.ready;
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            await fetch(`${BASE}/push/unsubscribe`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ endpoint: sub.endpoint })
+            });
+            await sub.unsubscribe();
+          }
+          msg.style.color = 'var(--text3)';
+          msg.textContent = '알림이 해제되었습니다.';
+        }
+        await updatePushUI();
+      } catch (e) {
+        msg.style.color = 'var(--danger, #dc2626)';
+        msg.textContent = `❌ ${e.message}`;
+      }
+    }
+
+    // 초기 + 설정 탭 클릭 시 푸시 상태 갱신
+    updatePushUI();
+    document.querySelector('[onclick="goSet(this)"]')?.addEventListener('click', () => {
+      setTimeout(updatePushUI, 100);
+    });
   </script>
 </body>
 
