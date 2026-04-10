@@ -2596,7 +2596,7 @@
         if (txt) txt.textContent = '이 브라우저는 푸시 미지원';
         return;
       }
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       if (isIOS && !window.navigator.standalone) {
         const guide = document.getElementById('iosGuide');
         if (guide) guide.style.display = 'block';
@@ -2683,7 +2683,7 @@
     async function showFirstVisitPushPopup() {
       if (!isPushSupported()) return;
       if (localStorage.getItem('push_asked')) return;
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       if (isIOS && !window.navigator.standalone) return; // iOS는 PWA 전용
       const status = await getPushStatus();
       if (status === 'subscribed' || status === 'denied') return;
