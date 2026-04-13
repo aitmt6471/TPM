@@ -520,6 +520,7 @@ export function renderPMOverviewTable() {
   state.pmPlans.forEach((row) => { planMap[pick(row.equip_code)] = row; });
   const keyword = ($('pm-overview-search')?.value || '').toLowerCase();
   const rows = state.equipment.filter((row) => {
+    if (num(pick(row.pm_yn, 0)) === 0) return false;
     if (!keyword) return true;
     const code = String(pick(row.equip_code, row.code)).toLowerCase();
     const name = String(pick(row.equip_name, row.name)).toLowerCase();

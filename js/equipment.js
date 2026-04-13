@@ -54,7 +54,7 @@ export function filterEquipList() {
     if (tabMode === 'active' && isIdle) return false;
     if (tabMode === '유휴' && !isIdle) return false;
     return (!keyword || code.includes(keyword) || name.includes(keyword)) && (!loc || rowLoc === loc) && (!status || rowStatus === status);
-  }).sort((a, b) => (a._no || 0) - (b._no || 0));
+  }).sort((a, b) => String(pick(a.equip_code, a.code)).localeCompare(String(pick(b.equip_code, b.code))));
 
   const activeCount = rows.filter((r) => pick(r.status, r.equip_status) !== '유휴').length;
   const idleCount = rows.filter((r) => pick(r.status, r.equip_status) === '유휴').length;
@@ -79,16 +79,38 @@ export function filterEquipList() {
           <td><span class="badge ${cls}">${escapeHtml(statusText || '-')}</span></td>
           <td>${num(row.total_reports).toLocaleString()}</td>
           <td>${num(row.open_reports).toLocaleString()}</td>
+          <td style="text-align:center">
+            <input type="checkbox" ${num(pick(row.pm_yn, 0)) ? 'checked' : ''}
+              title="${num(pick(row.pm_yn, 0)) ? '정기점검 대상 (클릭하여 해제)' : '정기점검 비대상 (클릭하여 설정)'}"
+              style="width:16px;height:16px;cursor:pointer;accent-color:var(--primary)"
+              onchange="togglePMTarget('${escapeHtml(code)}', this.checked)">
+          </td>
           <td><span class="badge grade-${escapeHtml(grade)}">${escapeHtml(grade)}</span></td>
           <td style="white-space:nowrap">
             <button class="btn btn-sm btn-secondary" onclick="openEquipDetail('${escapeHtml(code)}')">상세</button>
             <button class="btn btn-sm _qr-btn" style="margin-left:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0" data-qr-code="${escapeHtml(code)}" data-qr-name="${escapeHtml(pick(row.equip_name,row.name))}">QR</button>
           </td>
         </tr>`;
-    }).join('') || '<tr><td colspan="11">데이터 없음</td></tr>';
+    }).join('') || '<tr><td colspan="12">데이터 없음</td></tr>';
   }
   if ($('eq-count')) {
     $('eq-count').innerHTML = `가동 <strong>${activeCount}</strong>대 / 유휴 <strong style="color:var(--text3)">${idleCount}</strong>대 / 계 ${rows.length}대`;
+  }
+}
+
+export async function togglePMTarget(equipCode, checked) {
+  const row = state.equipment.find(r => pick(r.equip_code, r.code) === equipCode);
+  if (!row) return;
+  const prev = row.pm_yn;
+  row.pm_yn = checked ? 1 : 0;
+  filterEquipList(); // 즉시 UI 반영
+  try {
+    await api('equipment/upsert', { method: 'POST', body: JSON.stringify({ ...row, equip_code: equipCode, pm_yn: checked ? 1 : 0 }) });
+    showToast(checked ? `${equipCode} 정기점검 대상으로 설정` : `${equipCode} 정기점검 비대상으로 설정`);
+  } catch (e) {
+    row.pm_yn = prev; // 실패 시 원복
+    filterEquipList();
+    showToast(`저장 실패: ${e.message}`, 'error');
   }
 }
 
