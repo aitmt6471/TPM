@@ -170,6 +170,28 @@ export async function openEquipDetail(equipCode) {
     } catch {
       $('modal-equip-parts').innerHTML = '<tr><td colspan="6">파트 조회 실패</td></tr>';
     }
+    // 부속 설비 구성 로드
+    try {
+      const subRes = await api(`equipment/sub-items?equip_code=${encodeURIComponent(equipCode)}`);
+      const subItems = getRows(subRes);
+      $('modal-equip-subitems').innerHTML = subItems.map((item) => {
+        const p = pick(item.photo_url, '');
+        const validP = p && p !== 'undefined' && p !== 'null';
+        return `<tr>
+          <td style="text-align:center">
+            ${validP
+              ? `<img src="${escapeHtml(p)}" onclick="openPhotoModal('${escapeHtml(p)}')"
+                   style="width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in" />`
+              : `<span style="color:var(--text3);font-size:11px">없음</span>`}
+          </td>
+          <td>${escapeHtml(item.sub_code)}</td>
+          <td>${escapeHtml(item.sub_name)}</td>
+          <td style="text-align:center">${num(item.quantity)}</td>
+          <td style="color:var(--text3)">${escapeHtml(item.memo || '-')}</td>
+        </tr>`;}).join('') || '<tr><td colspan="5">등록된 부속 설비 없음</td></tr>';
+    } catch {
+      $('modal-equip-subitems').innerHTML = '<tr><td colspan="5">부속 설비 조회 실패</td></tr>';
+    }
     $('btn-equip-edit-mode').style.display = '';
     $('btn-equip-delete').style.display = '';
     const reportBtn = $('btn-open-report');
@@ -201,8 +223,23 @@ export function fillEquipForm(data = {}) {
   calcTotalScore();
 }
 
-export function openEquipForm() { fillEquipForm({}); loadEquipFormParts(''); openModal('modal-equip-form'); }
-export function enableEditMode() { closeModal('modal-equip'); fillEquipForm(state.currentEquip || {}); loadEquipFormParts(pick(state.currentEquip?.equip_code, state.currentEquip?.code, '')); openModal('modal-equip-form'); }
+export function openPhotoModal(url) {
+  const overlay = $('modal-photo-view');
+  const img = $('modal-photo-view-img');
+  if (!overlay || !img || !url) return;
+  img.src = url;
+  overlay.classList.add('open');
+}
+
+export function openEquipForm() { fillEquipForm({}); loadEquipFormParts(''); loadEquipSubItems(''); openModal('modal-equip-form'); }
+export function enableEditMode() {
+  const equipCode = pick(state.currentEquip?.equip_code, state.currentEquip?.code, '');
+  closeModal('modal-equip');
+  fillEquipForm(state.currentEquip || {});
+  loadEquipFormParts(equipCode);
+  loadEquipSubItems(equipCode);
+  openModal('modal-equip-form');
+}
 
 export async function loadEquipFormParts(equipCode) {
   // state.parts가 비어있으면 API에서 직접 로드
@@ -520,4 +557,152 @@ export function exportEquipToCSV() {
   a.download = `equipment_${formatDate(new Date())}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+// ── 부속 설비 구성 ────────────────────────────────────────────────
+
+export async function loadEquipSubItems(equipCode) {
+  const listEl = $('equip-form-subitems-list');
+  if (!listEl) return;
+  if (!equipCode) {
+    listEl.innerHTML = '<span style="color:var(--text3);font-size:12px">저장 후 부속 설비를 등록할 수 있습니다.</span>';
+    return;
+  }
+  try {
+    const res = await api(`equipment/sub-items?equip_code=${encodeURIComponent(equipCode)}`);
+    const items = getRows(res);
+    if (!items.length) {
+      listEl.innerHTML = '<span style="color:var(--text3);font-size:12px">등록된 부속 설비 없음</span>';
+      return;
+    }
+    const noPhotoCount = items.filter(i => { const p = pick(i.photo_url,''); return !p || p === 'undefined' || p === 'null'; }).length;
+    const warningBanner = noPhotoCount > 0
+      ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e">
+           ⚠️ 사진 없는 항목 <strong>${noPhotoCount}건</strong> — 📷 버튼을 눌러 사진을 등록해주세요.
+         </div>` : '';
+    listEl.innerHTML = warningBanner + `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="padding:4px 8px">사진</th>
+        <th style="text-align:left;padding:4px 8px">부속코드</th>
+        <th style="text-align:left;padding:4px 8px">명칭</th>
+        <th style="padding:4px 8px;text-align:center">수량</th>
+        <th style="text-align:left;padding:4px 8px">비고</th>
+        <th style="padding:4px 8px"></th>
+      </tr></thead>
+      <tbody>${items.map((item) => {
+        const photo = pick(item.photo_url, '');
+        const validPhoto = photo && photo !== 'undefined' && photo !== 'null';
+        const rowStyle = validPhoto ? '' : 'background:#fffbeb;border-left:3px solid #f59e0b';
+        return `
+        <tr style="border-bottom:1px solid var(--border,#e5e7eb);${rowStyle}">
+          <td style="padding:4px 8px;text-align:center">
+            ${validPhoto
+              ? `<img src="${escapeHtml(photo)}" onclick="openPhotoModal('${escapeHtml(photo)}')"
+                   style="width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in" />`
+              : `<div>
+                   <input type="file" id="sub-photo-input-${num(item.id)}" style="display:none" accept="image/*"
+                     onchange="updateSubItemPhoto(${num(item.id)},'${escapeHtml(equipCode)}',this)" />
+                   <button class="btn btn-sm" style="padding:2px 6px;font-size:11px;color:#92400e;background:#fef3c7;border-color:#f59e0b"
+                     onclick="document.getElementById('sub-photo-input-${num(item.id)}').click()">📷 등록</button>
+                 </div>`}
+          </td>
+          <td style="padding:4px 8px;font-weight:600">${escapeHtml(item.sub_code)}</td>
+          <td style="padding:4px 8px">${escapeHtml(item.sub_name)}</td>
+          <td style="padding:4px 8px;text-align:center">${num(item.quantity)}</td>
+          <td style="padding:4px 8px;color:var(--text3)">${escapeHtml(item.memo || '-')}</td>
+          <td style="padding:4px 8px">
+            <button class="btn btn-sm" style="color:var(--red,#ef4444);border-color:var(--red,#ef4444);padding:2px 8px;font-size:11px"
+              onclick="deleteEquipSubItem(${num(item.id)}, '${escapeHtml(equipCode)}')">삭제</button>
+          </td>
+        </tr>`;}).join('')}</tbody>
+    </table>`;
+  } catch {
+    listEl.innerHTML = '<span style="color:var(--text3);font-size:12px">부속 설비 정보를 불러오지 못했습니다.</span>';
+  }
+}
+
+export async function uploadSubItemPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const label = $('form-sub-photo-label');
+  if (label) label.textContent = '업로드 중...';
+  try {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const result = await api('photo/upload-sub', { method: 'POST', body: formData });
+    const url = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
+    if ($('form-sub-photo-url')) $('form-sub-photo-url').value = url;
+    if (label) { label.textContent = '✅'; label.style.color = 'var(--green,#16a34a)'; }
+  } catch (error) {
+    if (label) label.textContent = '실패';
+    showToast(`사진 업로드 실패: ${error.message}`, 'error');
+  }
+}
+
+export async function addEquipSubItem() {
+  const equipCode = $('form-eq-code')?.value?.trim();
+  if (!equipCode) { showToast('설비코드를 먼저 입력하세요.', 'error'); return; }
+  const subCode = $('form-sub-code')?.value?.trim();
+  const subName = $('form-sub-name')?.value?.trim();
+  if (!subCode || !subName) { showToast('부속코드와 명칭은 필수입니다.', 'error'); return; }
+  const photoUrl = $('form-sub-photo-url')?.value?.trim() || '';
+  const quantity = Math.max(1, num($('form-sub-qty')?.value || 1));
+  const memo = $('form-sub-memo')?.value?.trim() || '';
+  try {
+    await api('equipment/sub-items/upsert', {
+      method: 'POST',
+      body: JSON.stringify({ equip_code: equipCode, sub_code: subCode, sub_name: subName, quantity, memo, photo_url: photoUrl }),
+    });
+    showToast('✅ 부속 설비 추가 완료');
+    if ($('form-sub-code')) $('form-sub-code').value = '';
+    if ($('form-sub-name')) $('form-sub-name').value = '';
+    if ($('form-sub-qty')) $('form-sub-qty').value = '1';
+    if ($('form-sub-memo')) $('form-sub-memo').value = '';
+    if ($('form-sub-photo-url')) $('form-sub-photo-url').value = '';
+    const label = $('form-sub-photo-label');
+    if (label) { label.textContent = '없음'; label.style.color = ''; }
+    await loadEquipSubItems(equipCode);
+  } catch (error) { showToast(`부속 설비 추가 실패: ${error.message}`, 'error'); }
+}
+
+export async function deleteEquipSubItem(id, equipCode) {
+  if (!confirm('이 부속 설비를 삭제하시겠습니까?')) return;
+  try {
+    await api('equipment/sub-items/delete', { method: 'POST', body: JSON.stringify({ id }) });
+    showToast('🗑️ 삭제 완료');
+    await loadEquipSubItems(equipCode);
+  } catch (error) { showToast(`삭제 실패: ${error.message}`, 'error'); }
+}
+
+export async function updateSubItemPhoto(id, equipCode, input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  // 버튼 텍스트를 업로드 중으로 변경
+  const btn = input.parentElement?.querySelector('button');
+  if (btn) btn.textContent = '업로드 중...';
+  try {
+    // 1. 사진 업로드
+    const formData = new FormData();
+    formData.append('photo', file);
+    const result = await api('photo/upload-sub', { method: 'POST', body: formData });
+    const photoUrl = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
+    if (!photoUrl) throw new Error('업로드 URL 없음');
+    // 2. 해당 행 DOM에서 기존 데이터 읽기 (tr > td 순서: 사진/부속코드/명칭/수량/비고/삭제)
+    const tr = input.closest('tr');
+    const cells = tr ? tr.querySelectorAll('td') : [];
+    const subCode = cells[1]?.textContent?.trim() || '';
+    const subName = cells[2]?.textContent?.trim() || '';
+    const quantity = num(cells[3]?.textContent?.trim()) || 1;
+    const memo = cells[4]?.textContent?.trim().replace(/^-$/, '') || '';
+    // 3. 사진 URL 포함해 upsert
+    await api('equipment/sub-items/upsert', {
+      method: 'POST',
+      body: JSON.stringify({ equip_code: equipCode, sub_code: subCode, sub_name: subName, quantity, memo, photo_url: photoUrl }),
+    });
+    showToast('✅ 사진 등록 완료');
+    await loadEquipSubItems(equipCode);
+  } catch (error) {
+    if (btn) btn.textContent = '📷 등록';
+    showToast(`사진 업로드 실패: ${error.message}`, 'error');
+  }
 }

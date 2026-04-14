@@ -157,7 +157,7 @@ export async function loadDashboard() {
   const delayRows = reports.filter((r) => !String(r.status ?? '').includes('완료'));
   if ($('dash-delay-summary')) $('dash-delay-summary').textContent = `미처리 ${delayRows.length}건`;
   if ($('dash-delay-tbody')) $('dash-delay-tbody').innerHTML = delayRows.slice(0, 30).map((row) => {
-    const isLate = row.report_dt && (Date.now() - new Date(row.report_dt)) > 86400000;
-    return `<tr style="${isLate ? 'background:#fff0f0' : ''}"><td>${escapeHtml(pick(row.equip_code))}</td><td>${escapeHtml(pick(row.equip_name, '-'))}</td><td>${escapeHtml(pick(row.location, '-'))}</td><td>${escapeHtml(pick(row.report_dt, '-'))}</td><td>${escapeHtml(hoursSince(pick(row.report_dt)))}</td><td>${escapeHtml(pick(row.symptom, row.title, '-'))}</td><td>${escapeHtml(pick(row.priority, '-'))}</td><td>${escapeHtml(pick(row.status, '-'))}</td><td>${escapeHtml(pick(row.reporter, '-'))}</td></tr>`;
+    const isLate = row.report_dt && (Date.now() - new Date(row.report_dt)) > 300000;
+    return `<tr style="${isLate ? 'background:#fee2e2;border-left:4px solid #ef4444;font-weight:600' : ''}"><td>${escapeHtml(pick(row.equip_code))}</td><td>${escapeHtml(pick(row.equip_name, '-'))}</td><td>${escapeHtml(pick(row.location, '-'))}</td><td>${escapeHtml(pick(row.report_dt, '-'))}</td><td>${escapeHtml(hoursSince(pick(row.report_dt)))}</td><td>${escapeHtml(pick(row.symptom, row.title, '-'))}</td><td>${escapeHtml(pick(row.priority, '-'))}</td><td>${escapeHtml(pick(row.status, '-'))}</td><td>${escapeHtml(pick(row.reporter, '-'))}</td></tr>`;
   }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:16px">미처리 건 없음</td></tr>';
 }

@@ -255,10 +255,54 @@ export function openPartsMasterForm(partMasterId = 0) {
   $('pm-form-criticality').value = pick(row?.criticality, 'C');
   const safeEl = $('pm-form-safe-stock');
   if (safeEl) safeEl.value = num(pick(row?.total_safe_stock, row?.safe_stock_qty, row?.safe_stock, 0));
+  if ($('pm-form-photo-url')) $('pm-form-photo-url').value = pick(row?.photo_url, '');
+  syncPartsPhotoPreview();
   openModal('modal-parts-master');
 }
 
+export function syncPartsPhotoPreview() {
+  const url = $('pm-form-photo-url')?.value || '';
+  const img = $('pm-photo-previewimg');
+  const ph = $('pm-photo-placeholder');
+  const btn = $('btn-remove-parts-photo');
+  if (url) {
+    if (img) { img.src = url; img.style.display = ''; }
+    if (ph) ph.style.display = 'none';
+    if (btn) btn.style.display = '';
+  } else {
+    if (img) { img.removeAttribute('src'); img.style.display = 'none'; }
+    if (ph) ph.style.display = '';
+    if (btn) btn.style.display = 'none';
+  }
+}
+
+export async function uploadPartsPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const statusEl = $('pm-photo-status');
+  if (statusEl) statusEl.textContent = '업로드 중...';
+  try {
+    const formData = new FormData();
+    formData.append('photo', file);
+    const result = await api('photo/upload-parts', { method: 'POST', body: formData });
+    const url = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
+    if ($('pm-form-photo-url')) $('pm-form-photo-url').value = url;
+    syncPartsPhotoPreview();
+    if (statusEl) statusEl.textContent = '업로드 완료';
+  } catch (error) {
+    if (statusEl) statusEl.textContent = `업로드 실패: ${error.message}`;
+  }
+}
+
+export function removePartsPhoto() {
+  if ($('pm-form-photo-url')) $('pm-form-photo-url').value = '';
+  syncPartsPhotoPreview();
+  if ($('pm-photo-status')) $('pm-photo-status').textContent = '';
+}
+
 export async function savePartsMaster() {
+  const photoUrl = $('pm-form-photo-url')?.value?.trim() || '';
+  if (!photoUrl) { showToast('파트 사진을 등록해주세요. (필수)', 'error'); return; }
   const payload = {
     part_master_id: $('pm-form-master-id').value || '',
     part_code: $('pm-form-code').value.trim(),
@@ -268,6 +312,7 @@ export async function savePartsMaster() {
     std_cycle_days: num($('pm-form-cycle').value),
     criticality: $('pm-form-criticality').value,
     safe_stock_qty: num($('pm-form-safe-stock')?.value || 0),
+    photo_url: photoUrl,
     eval_1: 1, eval_2: 1, eval_3: 1, eval_4: 1, eval_total: 4,
   };
   if (!payload.part_name) { alert('파트명은 필수입니다.'); return; }
