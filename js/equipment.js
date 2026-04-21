@@ -120,7 +120,8 @@ export async function openEquipDetail(equipCode) {
     const equipmentData = response.equipment || response.data?.equipment || response.equipment?.[0] || response.data || response;
     state.currentEquip = equipmentData;
     $('modal-equip-title').textContent = `${pick(equipmentData.equip_name, equipmentData.name, equipCode)} 상세`;
-    const photoUrl = pick(equipmentData.photo_url, equipmentData.image_url);
+    const rawPhotoUrl = pick(equipmentData.photo_url, equipmentData.image_url);
+    const photoUrl = (rawPhotoUrl && rawPhotoUrl !== 'undefined' && rawPhotoUrl !== 'null') ? rawPhotoUrl : '';
     $('modal-equip-info').innerHTML = `
       <div style="width:100%;max-height:280px;border:1px solid var(--border);border-radius:16px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:16px">
         ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="설비 사진" style="width:100%;max-height:280px;object-fit:contain">` : '<span style="font-size:14px;color:var(--text3);padding:40px">사진 없음</span>'}
