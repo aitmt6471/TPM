@@ -1298,6 +1298,15 @@
 
   <script>
     let BASE = localStorage.getItem("baseUrl") || "https://aitechn8n.ngrok.app/webhook";
+
+    function normalizeDriveUrl(url) {
+      const src = String(url ?? '').trim();
+      if (!src || src === 'undefined' || src === 'null') return '';
+      const match = src.match(/\/file\/d\/([^/?#]+)/);
+      if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+      return src;
+    }
+
     let equips = [];
     let reports = [];
     let lookupData = [];
@@ -1556,8 +1565,9 @@
       document.getElementById("eqMeta").textContent = [e.equip_code, e.location, e.manufacturer].filter(Boolean).join(" / ");
 
       const imgEl = document.getElementById("eqImg");
-      if (e.photo_url) {
-        imgEl.src = e.photo_url;
+      const _eqPhotoNorm = normalizeDriveUrl(e.photo_url);
+      if (_eqPhotoNorm) {
+        imgEl.src = _eqPhotoNorm;
         imgEl.style.display = "block";
       } else {
         imgEl.style.display = "none";
@@ -1580,8 +1590,9 @@
       lockTitle.textContent = `${e.equip_name || "설비"} (${e.equip_code || ""})`;
       lockMeta.textContent = [e.location, e.manufacturer, e.manager].filter(Boolean).join(" / ") || "설비 고정 진입";
 
-      if (e.photo_url) {
-        lockImg.src = e.photo_url;
+      const _lockPhotoNorm = normalizeDriveUrl(e.photo_url);
+      if (_lockPhotoNorm) {
+        lockImg.src = _lockPhotoNorm;
         lockImg.style.display = "block";
       } else {
         lockImg.style.display = "none";
@@ -1599,8 +1610,9 @@
       document.getElementById("eqMeta").textContent = [e.equip_code, e.location, e.manufacturer].filter(Boolean).join(" / ");
 
       const imgEl = document.getElementById("eqImg");
-      if (e.photo_url) {
-        imgEl.src = e.photo_url;
+      const _lockEqPhotoNorm = normalizeDriveUrl(e.photo_url);
+      if (_lockEqPhotoNorm) {
+        imgEl.src = _lockEqPhotoNorm;
         imgEl.style.display = "block";
       } else {
         imgEl.style.display = "none";
@@ -1925,8 +1937,7 @@
         const isOpen = isOpenReportStatus(r.status);
         const late = r.report_dt && (Date.now() - new Date(r.report_dt)) > 86400000;
         const _equip = equips.find(e => e.equip_code === r.equip_code);
-        const _vu = v => (v && v !== 'undefined' && v !== 'null') ? v : '';
-        const _photoUrl = _vu(r.report_photo_url) || _vu(r.equip_photo_url) || _vu(_equip?.photo_url) || '';
+        const _photoUrl = normalizeDriveUrl(r.report_photo_url) || normalizeDriveUrl(r.equip_photo_url) || normalizeDriveUrl(_equip?.photo_url) || '';
         const photoHtml = _photoUrl
           ? `<img src="${_photoUrl}" style="width:100%;height:168px;object-fit:cover;border-radius:10px 10px 0 0;display:block;border-bottom:1px solid var(--border)">`
           : "";
@@ -1976,7 +1987,7 @@
 
       // 설비 사진 (라인명/설비명 위)
       const _equipData = equips.find(e => e.equip_code === code);
-      const equipPhotoUrl = report?.equip_photo_url || _equipData?.photo_url || '';
+      const equipPhotoUrl = normalizeDriveUrl(report?.equip_photo_url || _equipData?.photo_url || '');
       const equipPhotoWrap = document.getElementById('actEquipPhotoWrap');
       if (equipPhotoUrl) {
         equipPhotoWrap.innerHTML = `<img src="${equipPhotoUrl}" style="width:100%;max-height:180px;object-fit:cover;display:block;">`;
@@ -1987,8 +1998,7 @@
       }
 
       // 고장접수 사진 (다운타임 아래)
-      const _rpRaw = report?.report_photo_url;
-      const reportPhotoUrl = (_rpRaw && _rpRaw !== 'undefined' && _rpRaw !== 'null') ? _rpRaw : '';
+      const reportPhotoUrl = normalizeDriveUrl(report?.report_photo_url);
       const reportPhotoWrap = document.getElementById('actReportPhotoWrap');
       const reportPhotoImg = document.getElementById('actReportPhotoImg');
       if (reportPhotoUrl) {
@@ -2413,8 +2423,9 @@
 
       area.innerHTML = list.map(e => {
         const lookupStatus = isOpenReportStatus(e.latest_status) ? (e.latest_status || "접수") : (e.status || e.latest_status || "정상");
-        const photoHtml = e.photo_url
-          ? `<img src="${e.photo_url}" style="width:100%;height:168px;object-fit:cover;border-radius:10px 10px 0 0;display:block;border-bottom:1px solid var(--border)">`
+        const _lkpPhoto = normalizeDriveUrl(e.photo_url);
+        const photoHtml = _lkpPhoto
+          ? `<img src="${_lkpPhoto}" style="width:100%;height:168px;object-fit:cover;border-radius:10px 10px 0 0;display:block;border-bottom:1px solid var(--border)">`
           : "";
 
         return `

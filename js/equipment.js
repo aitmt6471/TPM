@@ -1,4 +1,4 @@
-﻿import { state, EVAL_KEYS, CACHE_KEYS, STATUS_COLORS, $, num, pick, escapeHtml, getRows, saveCache, loadCache, formatDate, renderPhotoThumb, renderStatusBadge, api, apiFirst, uploadPhoto, showToast } from './core.js';
+﻿import { state, EVAL_KEYS, CACHE_KEYS, STATUS_COLORS, $, num, pick, escapeHtml, getRows, saveCache, loadCache, formatDate, renderPhotoThumb, renderStatusBadge, api, apiFirst, uploadPhoto, showToast, normalizeDriveUrl } from './core.js';
 import { openModal, closeModal } from './ui.js';
 import { loadDashboard, calcTotalScore } from './dashboard.js';
 
@@ -120,8 +120,7 @@ export async function openEquipDetail(equipCode) {
     const equipmentData = response.equipment || response.data?.equipment || response.equipment?.[0] || response.data || response;
     state.currentEquip = equipmentData;
     $('modal-equip-title').textContent = `${pick(equipmentData.equip_name, equipmentData.name, equipCode)} 상세`;
-    const rawPhotoUrl = pick(equipmentData.photo_url, equipmentData.image_url);
-    const photoUrl = (rawPhotoUrl && rawPhotoUrl !== 'undefined' && rawPhotoUrl !== 'null') ? rawPhotoUrl : '';
+    const photoUrl = normalizeDriveUrl(pick(equipmentData.photo_url, equipmentData.image_url));
     $('modal-equip-info').innerHTML = `
       <div style="width:100%;max-height:280px;border:1px solid var(--border);border-radius:16px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:16px">
         ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="설비 사진" style="width:100%;max-height:280px;object-fit:contain">` : '<span style="font-size:14px;color:var(--text3);padding:40px">사진 없음</span>'}
@@ -176,8 +175,8 @@ export async function openEquipDetail(equipCode) {
       const subRes = await api(`equipment/sub-items?equip_code=${encodeURIComponent(equipCode)}`);
       const subItems = getRows(subRes);
       $('modal-equip-subitems').innerHTML = subItems.map((item) => {
-        const p = pick(item.photo_url, '');
-        const validP = p && p !== 'undefined' && p !== 'null';
+        const p = normalizeDriveUrl(pick(item.photo_url, ''));
+        const validP = !!p;
         return `<tr>
           <td style="text-align:center">
             ${validP
@@ -401,11 +400,8 @@ export function openHistorySlideOver(idx) {
   const panel = document.getElementById('history-slideover');
   const bg = document.getElementById('history-slideover-bg');
   if (!panel || !bg) return;
-  const reportPhoto = pick(row.report_photo, row.photo_url);
-  const actionPhoto = pick(row.action_photo, '');
-  const validPhoto = v => (v && v !== 'undefined' && v !== 'null') ? v : '';
-  const rp = validPhoto(reportPhoto);
-  const ap = validPhoto(actionPhoto);
+  const rp = normalizeDriveUrl(pick(row.report_photo, row.photo_url));
+  const ap = normalizeDriveUrl(pick(row.action_photo, ''));
 
   const photoSection = (rp || ap) ? `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
@@ -576,7 +572,7 @@ export async function loadEquipSubItems(equipCode) {
       listEl.innerHTML = '<span style="color:var(--text3);font-size:12px">등록된 부속 설비 없음</span>';
       return;
     }
-    const noPhotoCount = items.filter(i => { const p = pick(i.photo_url,''); return !p || p === 'undefined' || p === 'null'; }).length;
+    const noPhotoCount = items.filter(i => !normalizeDriveUrl(pick(i.photo_url, ''))).length;
     const warningBanner = noPhotoCount > 0
       ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e">
            ⚠️ 사진 없는 항목 <strong>${noPhotoCount}건</strong> — 📷 버튼을 눌러 사진을 등록해주세요.
@@ -591,8 +587,8 @@ export async function loadEquipSubItems(equipCode) {
         <th style="padding:4px 8px"></th>
       </tr></thead>
       <tbody>${items.map((item) => {
-        const photo = pick(item.photo_url, '');
-        const validPhoto = photo && photo !== 'undefined' && photo !== 'null';
+        const photo = normalizeDriveUrl(pick(item.photo_url, ''));
+        const validPhoto = !!photo;
         const rowStyle = validPhoto ? '' : 'background:#fffbeb;border-left:3px solid #f59e0b';
         return `
         <tr style="border-bottom:1px solid var(--border,#e5e7eb);${rowStyle}">
