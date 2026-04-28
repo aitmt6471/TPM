@@ -385,7 +385,7 @@ export async function uploadEquipPhoto(input) {
     $('form-eq-photo-url').value = url || '';
     state.equipPhotoUrl = url || '';
     syncEquipPhotoPreview();
-    $('equip-photo-status').textContent = '업로드 완료';
+    $('equip-photo-status').textContent = '업로드 완료 | URL: ' + (url || '(없음)');
   } catch (error) {
     $('equip-photo-status').textContent = `업로드 실패: ${error.message}`;
   }
