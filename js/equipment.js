@@ -1,4 +1,4 @@
-﻿import { state, EVAL_KEYS, CACHE_KEYS, STATUS_COLORS, $, num, pick, escapeHtml, getRows, saveCache, loadCache, formatDate, renderPhotoThumb, renderStatusBadge, api, apiFirst, uploadPhoto, showToast, normalizeDriveUrl } from './core.js';
+﻿import { state, EVAL_KEYS, CACHE_KEYS, STATUS_COLORS, $, num, pick, escapeHtml, getRows, saveCache, loadCache, formatDate, renderPhotoThumb, renderStatusBadge, api, apiFirst, uploadPhoto, showToast, normalizeDriveUrl, driveImgFallback } from './core.js';
 import { openModal, closeModal } from './ui.js';
 import { loadDashboard, calcTotalScore } from './dashboard.js';
 
@@ -123,7 +123,7 @@ export async function openEquipDetail(equipCode) {
     const photoUrl = normalizeDriveUrl(pick(equipmentData.photo_url, equipmentData.image_url));
     $('modal-equip-info').innerHTML = `
       <div style="width:100%;max-height:280px;border:1px solid var(--border);border-radius:16px;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:16px">
-        ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="설비 사진" style="width:100%;max-height:280px;object-fit:contain">` : '<span style="font-size:14px;color:var(--text3);padding:40px">사진 없음</span>'}
+        ${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="설비 사진" onerror="driveImgFallback(this)" style="width:100%;max-height:280px;object-fit:contain">` : '<span style="font-size:14px;color:var(--text3);padding:40px">사진 없음</span>'}
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:14px">
         <tbody>
@@ -180,7 +180,7 @@ export async function openEquipDetail(equipCode) {
         return `<tr>
           <td style="text-align:center">
             ${validP
-              ? `<img src="${escapeHtml(p)}" onclick="openPhotoModal('${escapeHtml(p)}')"
+              ? `<img src="${escapeHtml(p)}" onclick="openPhotoModal('${escapeHtml(p)}')" onerror="driveImgFallback(this)"
                    style="width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in" />`
               : `<span style="color:var(--text3);font-size:11px">없음</span>`}
           </td>
@@ -369,8 +369,8 @@ export function syncEquipPhotoPreview() {
   const img = $('equip-photo-previewimg');
   const ph = $('equip-photo-placeholder');
   const btn = $('btn-remove-equip-photo');
-  if (url) { img.src = url; img.style.display = ''; ph.style.display = 'none'; btn.style.display = ''; }
-  else { img.removeAttribute('src'); img.style.display = 'none'; ph.style.display = ''; btn.style.display = 'none'; }
+  if (url) { img.src = url; img.onerror = () => driveImgFallback(img); img.style.display = ''; ph.style.display = 'none'; btn.style.display = ''; }
+  else { img.removeAttribute('src'); img.onerror = null; img.style.display = 'none'; ph.style.display = ''; btn.style.display = 'none'; }
 }
 
 export async function uploadEquipPhoto(input) {
@@ -412,7 +412,7 @@ export function openHistorySlideOver(idx) {
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-align:center">📷 고장접수 사진</div>
         ${rp
           ? `<a href="${escapeHtml(rp)}" target="_blank" rel="noopener noreferrer">
-               <img src="${escapeHtml(rp)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:block;" />
+               <img src="${escapeHtml(rp)}" onerror="driveImgFallback(this)" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:block;" />
              </a>`
           : `<div style="width:100%;aspect-ratio:4/3;background:#f3f4f6;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:flex;align-items:center;justify-content:center;font-size:11px;color:#9ca3af">없음</div>`}
       </div>
@@ -420,7 +420,7 @@ export function openHistorySlideOver(idx) {
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;text-align:center">🔧 조치 사진</div>
         ${ap
           ? `<a href="${escapeHtml(ap)}" target="_blank" rel="noopener noreferrer">
-               <img src="${escapeHtml(ap)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:block;" />
+               <img src="${escapeHtml(ap)}" onerror="driveImgFallback(this)" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:block;" />
              </a>`
           : `<div style="width:100%;aspect-ratio:4/3;background:#f3f4f6;border-radius:10px;border:1px solid var(--border,#e5e7eb);display:flex;align-items:center;justify-content:center;font-size:11px;color:#9ca3af">없음</div>`}
       </div>
@@ -597,7 +597,7 @@ export async function loadEquipSubItems(equipCode) {
         <tr style="border-bottom:1px solid var(--border,#e5e7eb);${rowStyle}">
           <td style="padding:4px 8px;text-align:center">
             ${validPhoto
-              ? `<img src="${escapeHtml(photo)}" onclick="openPhotoModal('${escapeHtml(photo)}')"
+              ? `<img src="${escapeHtml(photo)}" onclick="openPhotoModal('${escapeHtml(photo)}')" onerror="driveImgFallback(this)"
                    style="width:140px;height:140px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in" />`
               : `<div>
                    <input type="file" id="sub-photo-input-${num(item.id)}" style="display:none" accept="image/*"

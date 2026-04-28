@@ -1,4 +1,4 @@
-﻿import { $, state } from './js/core.js';
+﻿import { $, state, driveImgFallback } from './js/core.js';
 import { registerRefreshers, showPage, refreshCurrent, openModal, closeModal } from './js/ui.js';
 import { checkConn, saveConfig, testConn, loadRemoteSettings, renderEvaluationSelects, calcTotalScore, loadDashboard } from './js/dashboard.js';
 import { loadEquipment, filterEquipList, openEquipForm, openEquipDetail, enableEditMode, saveEquipment, confirmDeleteEquip, uploadEquipPhoto, removeEquipPhoto, exportEquipToCSV, openHistorySlideOver, closeHistorySlideOver, submitHistoryAction, deleteHistoryReport, showQR, loadEquipFormParts, addEquipFormPart, toggleEquipIdle, setEquipTab, togglePMTarget, loadEquipSubItems, addEquipSubItem, deleteEquipSubItem, uploadSubItemPhoto, updateSubItemPhoto, openPhotoModal } from './js/equipment.js';
@@ -128,6 +128,7 @@ function bindGlobals() {
     savePMResultEdit,
     deletePMResultRow,
     deletePMResultMonth,
+    driveImgFallback,
   });
 }
 
