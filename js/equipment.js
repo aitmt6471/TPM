@@ -385,7 +385,7 @@ export async function uploadEquipPhoto(input) {
     $('form-eq-photo-url').value = url || '';
     state.equipPhotoUrl = url || '';
     syncEquipPhotoPreview();
-    $('equip-photo-status').textContent = '업로드 완료 | URL: ' + (url || '(없음)');
+    $('equip-photo-status').textContent = '업로드 완료';
   } catch (error) {
     $('equip-photo-status').textContent = `업로드 실패: ${error.message}`;
   }
@@ -634,7 +634,7 @@ export async function uploadSubItemPhoto(input) {
     const formData = new FormData();
     formData.append('photo', new File([file], fileName, { type: file.type }));
     const result = await api('photo/upload-sub', { method: 'POST', body: formData });
-    const url = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
+    const url = pick(result.url, result.data?.[0]?.url, result.direct_url, '');
     if ($('form-sub-photo-url')) $('form-sub-photo-url').value = url;
     if (label) { label.textContent = '✅'; label.style.color = 'var(--green,#16a34a)'; }
   } catch (error) {
@@ -691,7 +691,7 @@ export async function updateSubItemPhoto(id, equipCode, input) {
     const formData = new FormData();
     formData.append('photo', new File([file], fileName, { type: file.type }));
     const result = await api('photo/upload-sub', { method: 'POST', body: formData });
-    const photoUrl = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
+    const photoUrl = pick(result.url, result.data?.[0]?.url, result.direct_url, '');
     if (!photoUrl) throw new Error('업로드 URL 없음');
     // 2. 해당 행 DOM에서 기존 데이터 읽기 (tr > td 순서: 사진/부속코드/명칭/수량/비고/삭제)
     const tr = input.closest('tr');
