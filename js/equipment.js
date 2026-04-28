@@ -378,7 +378,10 @@ export async function uploadEquipPhoto(input) {
   if (!file) return;
   $('equip-photo-status').textContent = '업로드 중...';
   try {
-    const url = await uploadPhoto(file);
+    const equipCode = $('form-eq-code')?.value?.trim() || 'UNKNOWN';
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `EQUIP_${equipCode}_${Date.now()}.${ext}`;
+    const url = await uploadPhoto(file, fileName);
     $('form-eq-photo-url').value = url || '';
     state.equipPhotoUrl = url || '';
     syncEquipPhotoPreview();
@@ -624,8 +627,12 @@ export async function uploadSubItemPhoto(input) {
   const label = $('form-sub-photo-label');
   if (label) label.textContent = '업로드 중...';
   try {
+    const equipCode = $('form-eq-code')?.value?.trim() || 'UNKNOWN';
+    const subCode = $('form-sub-code')?.value?.trim() || 'SUB';
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `SUB_${equipCode}_${subCode}_${Date.now()}.${ext}`;
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append('photo', new File([file], fileName, { type: file.type }));
     const result = await api('photo/upload-sub', { method: 'POST', body: formData });
     const url = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
     if ($('form-sub-photo-url')) $('form-sub-photo-url').value = url;
@@ -679,8 +686,10 @@ export async function updateSubItemPhoto(id, equipCode, input) {
   if (btn) btn.textContent = '업로드 중...';
   try {
     // 1. 사진 업로드
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `SUB_${equipCode}_${id}_${Date.now()}.${ext}`;
     const formData = new FormData();
-    formData.append('photo', file);
+    formData.append('photo', new File([file], fileName, { type: file.type }));
     const result = await api('photo/upload-sub', { method: 'POST', body: formData });
     const photoUrl = pick(result.direct_url, result.url, result.data?.[0]?.url, '');
     if (!photoUrl) throw new Error('업로드 URL 없음');
