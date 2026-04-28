@@ -365,7 +365,7 @@ export async function confirmDeleteEquip() {
 }
 
 export function syncEquipPhotoPreview() {
-  const url = $('form-eq-photo-url').value || '';
+  const url = normalizeDriveUrl($('form-eq-photo-url').value || '');
   const img = $('equip-photo-previewimg');
   const ph = $('equip-photo-placeholder');
   const btn = $('btn-remove-equip-photo');
