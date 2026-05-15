@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -1156,7 +1156,7 @@
     </div>
   </div>
 
-  <div class="ov" id="actOv" onclick="if(event.target===this)closeAct()">
+  <div class="ov" id="actOv">
     <div class="sheet">
       <div class="sh-handle"></div>
       <div class="sh-title" id="actTitle">✏️ 조치 입력</div>
@@ -2317,6 +2317,11 @@
       const dt = document.getElementById("actDt").value;
       const dlyCat = document.getElementById("actDlyCat").value;
       const dlyRsn = document.getElementById("actDlyReason").value.trim();
+
+      if (!status) {
+        alert("상태를 변경해주세요.\n접수 상태에서는 반드시 상태 변경 후 저장해야 합니다.");
+        return;
+      }
 
       if (!tech && !detail) {
         alert("조치자 또는 조치내용 입력 필요");
