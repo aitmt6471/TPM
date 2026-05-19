@@ -30,9 +30,11 @@ const CRITICALITY_COLORS = { 'A': 'bad', 'B': 'warn', 'C': 'caution', 'D': 'good
 
 export function renderPartsList() {
   const keyword = ($('parts-search')?.value || '').toLowerCase();
-  const rows = state.parts.filter((row) =>
-    [row.part_code, row.part_name, row.spec].some((v) => String(v || '').toLowerCase().includes(keyword))
-  );
+  const rows = state.parts
+    .filter((row) =>
+      [row.part_code, row.part_name, row.spec].some((v) => String(v || '').toLowerCase().includes(keyword))
+    )
+    .sort((a, b) => String(a.part_code || '').localeCompare(String(b.part_code || ''), undefined, { numeric: true, sensitivity: 'base' }));
   $('parts-tbody').innerHTML = rows.map((row) => {
     const stock = num(row.current_stock);
     const safeStock = num(pick(row.safe_stock_qty, row.total_safe_stock, row.safe_stock, 0));
