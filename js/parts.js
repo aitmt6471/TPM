@@ -35,7 +35,7 @@ export function renderPartsList() {
       [row.part_code, row.part_name, row.spec].some((v) => String(v || '').toLowerCase().includes(keyword))
     )
     .sort((a, b) => String(a.part_code || '').localeCompare(String(b.part_code || ''), undefined, { numeric: true, sensitivity: 'base' }));
-  $('parts-tbody').innerHTML = rows.map((row) => {
+  $('parts-tbody').innerHTML = rows.map((row, idx) => {
     const stock = num(row.current_stock);
     const safeStock = num(pick(row.safe_stock_qty, row.total_safe_stock, row.safe_stock, 0));
     const stockCls = stock < safeStock ? 'stock-low' : 'stock-ok';
@@ -45,6 +45,7 @@ export function renderPartsList() {
     const critCls = CRITICALITY_COLORS[crit] || '';
     return `
     <tr style="cursor:pointer" onclick="openPartsHistory(${id},'${escapeHtml(row.part_code)}','${escapeHtml(row.part_name)}')">
+      <td style="text-align:center;color:var(--text3,#9ca3af);font-size:12px">${idx + 1}</td>
       <td>${escapeHtml(row.part_code)}</td>
       <td>${escapeHtml(row.part_name)}</td>
       <td>${escapeHtml(row.spec)}</td>
@@ -58,7 +59,7 @@ export function renderPartsList() {
         <button class="btn btn-sm btn-secondary" onclick="openPartsEquipLink(${id})">🔗 설비 연결</button>
       </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="9">데이터 없음</td></tr>';
+  }).join('') || '<tr><td colspan="10">데이터 없음</td></tr>';
 }
 
 export function showPartUsage(partMasterId) {
