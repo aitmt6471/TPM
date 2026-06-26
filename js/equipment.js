@@ -7,6 +7,17 @@ document.addEventListener('click', (e) => {
   if (btn) showQR(btn.dataset.qrCode, btn.dataset.qrName);
 });
 
+// n8n SQL이 값을 작은따옴표로 직접 보간하므로, 문자열 내 작은따옴표(예: ASS'Y)가
+// 쿼리를 깨뜨려 "Error in workflow"가 발생한다. 전송 전 작은따옴표를 ''로 이스케이프.
+function sqlSafe(obj) {
+  const out = {};
+  for (const k in obj) {
+    const v = obj[k];
+    out[k] = typeof v === 'string' ? v.replace(/'/g, "''") : v;
+  }
+  return out;
+}
+
 export async function loadEquipment() {
   try {
     const response = await apiFirst(['equipment/list']);
@@ -105,7 +116,7 @@ export async function togglePMTarget(equipCode, checked) {
   row.pm_yn = checked ? 1 : 0;
   filterEquipList(); // 즉시 UI 반영
   try {
-    await api('equipment/upsert', { method: 'POST', body: JSON.stringify({ ...row, equip_code: equipCode, pm_yn: checked ? 1 : 0 }) });
+    await api('equipment/upsert', { method: 'POST', body: JSON.stringify(sqlSafe({ ...row, equip_code: equipCode, pm_yn: checked ? 1 : 0 })) });
     showToast(checked ? `${equipCode} 정기점검 대상으로 설정` : `${equipCode} 정기점검 비대상으로 설정`);
   } catch (e) {
     row.pm_yn = prev; // 실패 시 원복
@@ -307,7 +318,7 @@ export async function saveEquipment() {
   EVAL_KEYS.forEach((key) => { payload[`eval_${key.replace('-', '_')}`] = num($(`eval-${key}`).value); });
   if (!payload.equip_code || !payload.equip_name) { alert('설비코드와 설비명은 필수입니다.'); return; }
   try {
-    await api('equipment/upsert', { method: 'POST', body: JSON.stringify(payload) });
+    await api('equipment/upsert', { method: 'POST', body: JSON.stringify(sqlSafe(payload)) });
     closeModal('modal-equip-form');
     await loadEquipment();
     if (state.currentPage === 'page-dashboard') await loadDashboard();
@@ -343,7 +354,7 @@ export async function toggleEquipIdle() {
   try {
     await api('equipment/upsert', {
       method: 'POST',
-      body: JSON.stringify({ ...equip, status: newStatus, equip_status: newStatus }),
+      body: JSON.stringify(sqlSafe({ ...equip, status: newStatus, equip_status: newStatus })),
     });
     showToast(`✅ 상태 변경: ${currentStatus} → ${newStatus}`);
     closeModal('modal-equip');
