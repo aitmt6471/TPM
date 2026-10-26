@@ -1,6 +1,6 @@
 ﻿export const state = {
   currentPage: 'page-dashboard',
-  baseUrl: localStorage.getItem('baseUrl') || 'https://n8n.aitkorea.app/webhook',
+  baseUrl: (localStorage.getItem('baseUrl') || '').replace(/^.*ngrok.*$/, '') || 'https://n8n.aitkorea.app/webhook',
   equipment: [],
   reports: [],
   parts: [],

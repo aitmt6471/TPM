@@ -1297,7 +1297,7 @@
   </div>
 
   <script>
-    let BASE = localStorage.getItem("baseUrl") || "https://n8n.aitkorea.app/webhook";
+    let BASE = (localStorage.getItem("baseUrl") || "").replace(/^.*ngrok.*$/, "") || "https://n8n.aitkorea.app/webhook";
 
     function normalizeDriveUrl(url) {
       const src = String(url ?? '').trim();
