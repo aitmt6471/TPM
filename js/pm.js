@@ -1318,11 +1318,12 @@ export function updatePMItemsSel(fromAll) {
 export async function deleteSelectedPMItems() {
   const ids = [...document.querySelectorAll('#pmi-tbody .pmi-check:checked')].map((b) => Number(b.value));
   if (!ids.length) return;
-  if (!confirm(`선택한 점검 항목 ${ids.length}개를 삭제하시겠습니까?`)) return;
+  if (!confirm(`선택한 점검 항목 ${ids.length}개를 삭제하시겠습니까?
+해당 항목의 점검 실적 이력도 함께 삭제됩니다.`)) return;
   const results = await Promise.allSettled(ids.map((id) => apiFirst(['pm/master/delete'], { method: 'POST', body: JSON.stringify({ id }) })));
   const failed = results.filter((r) => r.status === 'rejected');
   await loadPMMasterList();
-  if (failed.length) showToast(`${ids.length - failed.length}개 삭제, ${failed.length}개 실패 — 점검 실적 이력이 있는 항목은 삭제할 수 없습니다.`, 'error');
+  if (failed.length) showToast(`${ids.length - failed.length}개 삭제, ${failed.length}개 실패 (${failed[0].reason?.message || '오류'})`, 'error');
   else showToast(`✅ ${ids.length}개 삭제 완료`);
 }
 
@@ -1351,11 +1352,12 @@ export async function saveInlineItemModal() {
 }
 
 export async function deletePMItemInModal(id) {
-  if (!confirm('점검 항목을 삭제하시겠습니까?')) return;
+  if (!confirm('점검 항목을 삭제하시겠습니까?
+해당 항목의 점검 실적 이력도 함께 삭제됩니다.')) return;
   try {
     await apiFirst(['pm/master/delete'], { method: 'POST', body: JSON.stringify({ id }) });
     await loadPMMasterList();
-  } catch (error) { showToast(`삭제 실패: 점검 실적 이력이 있는 항목은 삭제할 수 없습니다. (${error.message})`, 'error'); }
+  } catch (error) { showToast(`삭제 실패: ${error.message}`, 'error'); }
 }
 
 export async function uploadPMItemPhoto(input, targetId) {
