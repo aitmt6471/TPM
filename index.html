@@ -733,12 +733,16 @@
     <div class="modal-body" style="padding:0">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border)">
         <span id="pmi-count" style="font-size:12px;color:var(--text3);font-weight:700">총 0개</span>
-        <button class="btn btn-sm btn-secondary" onclick="openCopyFromEquip()">다른 설비에서 복사</button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm btn-danger" id="pmi-bulk-del" style="display:none" onclick="deleteSelectedPMItems()">선택 삭제</button>
+          <button class="btn btn-sm btn-secondary" onclick="openCopyFromEquip()">다른 설비에서 복사</button>
+        </div>
       </div>
       <div class="table-wrap" style="max-height:340px;overflow-y:auto">
         <table style="width:100%">
           <thead>
             <tr>
+              <th style="width:30px;text-align:center;padding:8px 6px"><input type="checkbox" id="pmi-check-all" onchange="updatePMItemsSel(true)"></th>
               <th style="width:36px;text-align:center;padding:8px 6px">No.</th>
               <th style="padding:8px 10px">점검 부위</th>
               <th style="padding:8px 10px">점검 항목</th>
@@ -749,7 +753,7 @@
             </tr>
           </thead>
           <tbody id="pmi-tbody">
-            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">로딩 중...</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">로딩 중...</td></tr>
           </tbody>
         </table>
       </div>

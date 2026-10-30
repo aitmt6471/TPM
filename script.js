@@ -4,7 +4,7 @@ import { checkConn, saveConfig, testConn, loadRemoteSettings, renderEvaluationSe
 import { loadEquipment, filterEquipList, openEquipForm, openEquipDetail, enableEditMode, saveEquipment, confirmDeleteEquip, uploadEquipPhoto, removeEquipPhoto, exportEquipToCSV, openHistorySlideOver, closeHistorySlideOver, submitHistoryAction, deleteHistoryReport, showQR, loadEquipFormParts, addEquipFormPart, toggleEquipIdle, setEquipTab, togglePMTarget, loadEquipSubItems, addEquipSubItem, deleteEquipSubItem, uploadSubItemPhoto, updateSubItemPhoto, openPhotoModal } from './js/equipment.js';
 import { loadReports, openReportModal, submitAction, uploadReportPhoto, removeReportPhoto, openReportNewModal, submitNewReport, renderReportBoard, addReportYear } from './js/reports.js';
 import { loadParts, renderPartsList, showPartUsage, openPartsMasterForm, savePartsMaster, openPartsIn, savePartsIn, openPartsOut, savePartsOut, openPartsEquipLink, renderPELList, filterPELList, togglePELSuggest, removePELLink, savePartsEquipLink, openPartsHistory, closePartsHistory, syncPartsPhotoPreview, uploadPartsPhoto, removePartsPhoto } from './js/parts.js';
-import { loadPMMasterList, openPMMasterForm, savePMMasterItem, editPMMasterItem, deletePMMasterItem, loadPMPlan, addNewYear, savePMPlans, openPMEdit, savePMEditSingle, ensureYearOptions, cyclePMStatus, cyclePMOverviewCell, saveAllPMResults, setPMPlanDate, loadPMResultsForEquip, openPMResultHistory, closePMResultHistory, renderPMEquipList, selectPMEquip, renderPMPlanEquipList, selectPMPlanEquip, renderPMPlanMonthGrid, savePMSingleEquip, savePMResultRow, saveRowResults, renderPMOverviewTable, updateCheckMonthSelect, openPMPlanSlideover, closePMPlanSlideover, setPMPlanDateFromSlide, savePMPlanFromSlideover, openPMResultEntry, closePMResultEntry, setPMEntryResult, savePMResultEntry, openPMChecksheet, savePMChecksheet, saveInlineItem, openCopyFromEquip, previewCopyItems, saveCopyFromEquip, renderChecksheetHistory, toggleChecksheetHistory, openChecksheetMonthDetail, openPMItemsModal, renderPMItemsTable, saveInlineItemModal, deletePMItemInModal, uploadPMItemPhoto, uploadAndUpdateItemPhoto, removePMItemPhoto, openPMHistoryModal, showPMHistoryList, openPMHistoryDetail, uploadPMChecksheetPhoto, openPMResultEdit, savePMResultEdit, deletePMResultRow, deletePMResultMonth } from './js/pm.js';
+import { loadPMMasterList, openPMMasterForm, savePMMasterItem, editPMMasterItem, deletePMMasterItem, loadPMPlan, addNewYear, savePMPlans, openPMEdit, savePMEditSingle, ensureYearOptions, cyclePMStatus, cyclePMOverviewCell, saveAllPMResults, setPMPlanDate, loadPMResultsForEquip, openPMResultHistory, closePMResultHistory, renderPMEquipList, selectPMEquip, renderPMPlanEquipList, selectPMPlanEquip, renderPMPlanMonthGrid, savePMSingleEquip, savePMResultRow, saveRowResults, renderPMOverviewTable, updateCheckMonthSelect, openPMPlanSlideover, closePMPlanSlideover, setPMPlanDateFromSlide, savePMPlanFromSlideover, openPMResultEntry, closePMResultEntry, setPMEntryResult, savePMResultEntry, openPMChecksheet, savePMChecksheet, saveInlineItem, openCopyFromEquip, previewCopyItems, saveCopyFromEquip, renderChecksheetHistory, toggleChecksheetHistory, openChecksheetMonthDetail, openPMItemsModal, renderPMItemsTable, saveInlineItemModal, deletePMItemInModal, updatePMItemsSel, deleteSelectedPMItems, uploadPMItemPhoto, uploadAndUpdateItemPhoto, removePMItemPhoto, openPMHistoryModal, showPMHistoryList, openPMHistoryDetail, uploadPMChecksheetPhoto, openPMResultEdit, savePMResultEdit, deletePMResultRow, deletePMResultMonth } from './js/pm.js';
 import { loadStats } from './js/stats.js';
 
 function bindGlobals() {
@@ -117,6 +117,8 @@ function bindGlobals() {
     renderPMItemsTable,
     saveInlineItemModal,
     deletePMItemInModal,
+    updatePMItemsSel,
+    deleteSelectedPMItems,
     uploadPMItemPhoto,
     uploadAndUpdateItemPhoto,
     removePMItemPhoto,
@@ -144,11 +146,11 @@ async function init() {
   bindGlobals();
   renderEvaluationSelects();
   ensureYearOptions();
-  await loadRemoteSettings();
-  if ($('cfg-base-url')) $('cfg-base-url').value = state.baseUrl;
-  await checkConn();
-  await Promise.allSettled([loadEquipment(), loadReports()]);
-  await loadDashboard();
+  // 순차 대기(설정→연결→목록→대시보드 ≈ 4왕복) 대신 병렬 실행. 중복 GET은 api()가 합쳐줌.
+  const settingsP = loadRemoteSettings().then(() => { if ($('cfg-base-url')) $('cfg-base-url').value = state.baseUrl; });
+  const baseBefore = state.baseUrl;
+  await Promise.allSettled([settingsP, checkConn(), loadEquipment(), loadReports(), loadDashboard()]);
+  if (state.baseUrl !== baseBefore) await Promise.allSettled([checkConn(), loadEquipment(), loadReports(), loadDashboard()]);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

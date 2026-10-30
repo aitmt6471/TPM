@@ -46,7 +46,20 @@ export function pick(...values) {
 }
 export function normalizeStatus(value) { const v = String(value ?? '').trim(); if (!v) return '접수'; if (v.includes('확인')) return '확인중'; if (v.includes('수리')) return '수리중'; if (v.includes('완료') || v.includes('조치')) return '완료'; return v; }
 export function setConnection(ok, text) { const dot = $('conn-dot'); const label = $('conn-text'); if (dot) dot.className = `conn-dot ${ok ? 'ok' : 'err'}`; if (label) label.textContent = text; }
-export async function api(path, options = {}) { const url = `${state.baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`; const headers = new Headers(options.headers || {}); headers.set('ngrok-skip-browser-warning', 'true'); if (options.body && !headers.has('Content-Type') && !(options.body instanceof FormData)) { headers.set('Content-Type', 'application/json'); } const response = await fetch(url, { ...options, headers }); const text = await response.text(); let data = {}; try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; } if (!response.ok) { throw new Error(data.message || data.error || `${response.status} ${response.statusText}`); } return data; }
+// 같은 GET이 3초 안에 중복 호출되면(초기 로딩 등) 한 번만 요청. 쓰기 요청이 나가면 캐시 비움.
+const _getCache = new Map();
+export function api(path, options = {}) {
+  if (options.method && options.method.toUpperCase() !== 'GET') { _getCache.clear(); return fetchApi(path, options); }
+  if (options.body) return fetchApi(path, options);
+  const key = `${state.baseUrl}|${path}`;
+  const hit = _getCache.get(key);
+  if (hit && Date.now() - hit.t < 3000) return hit.p;
+  const p = fetchApi(path, options);
+  _getCache.set(key, { t: Date.now(), p });
+  p.catch(() => _getCache.delete(key));
+  return p;
+}
+async function fetchApi(path, options = {}) { const url = `${state.baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`; const headers = new Headers(options.headers || {}); headers.set('ngrok-skip-browser-warning', 'true'); if (options.body && !headers.has('Content-Type') && !(options.body instanceof FormData)) { headers.set('Content-Type', 'application/json'); } const response = await fetch(url, { ...options, headers }); const text = await response.text(); let data = {}; try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; } if (!response.ok) { throw new Error(data.message || data.error || `${response.status} ${response.statusText}`); } return data; }
 export async function apiFirst(paths, options = {}) { let lastError = null; for (const path of paths) { try { return await api(path, options); } catch (error) { lastError = error; } } throw lastError || new Error('API 요청 실패'); }
 export function getRows(payload) { if (Array.isArray(payload)) return payload; if (Array.isArray(payload?.data)) return payload.data; if (Array.isArray(payload?.items)) return payload.items; return []; }
 export function showToast(message, type = 'info') {

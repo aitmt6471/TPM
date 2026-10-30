@@ -1268,7 +1268,7 @@ export function renderPMItemsTable() {
   const rows = state.pmMasters.filter((row) => !selectedPMEquip || pick(row.equip_code) === selectedPMEquip);
   if ($('pmi-count')) $('pmi-count').textContent = `총 ${rows.length}개`;
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">${selectedPMEquip ? '등록된 점검항목이 없습니다.' : '설비를 선택하세요.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">${selectedPMEquip ? '등록된 점검항목이 없습니다.' : '설비를 선택하세요.'}</td></tr>`;
     return;
   }
   tbody.innerHTML = rows.map((row, idx) => {
@@ -1286,6 +1286,7 @@ export function renderPMItemsTable() {
            📷<input type="file" accept="image/*" style="display:none" onchange="uploadAndUpdateItemPhoto(this,${id})">
          </label>`;
     return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="text-align:center;padding:6px"><input type="checkbox" class="pmi-check" value="${id}" onchange="updatePMItemsSel()"></td>
       <td style="text-align:center;color:var(--text3);font-size:11px;padding:6px">${idx + 1}</td>
       <td style="padding:6px 10px;font-size:12px">${escapeHtml(pick(row.part_name, row.part, '—'))}</td>
       <td style="padding:6px 10px;font-size:12px;font-weight:600">${escapeHtml(pick(row.item_name, row.check_item, ''))}</td>
@@ -1300,6 +1301,29 @@ export function renderPMItemsTable() {
       </td>
     </tr>`;
   }).join('');
+  updatePMItemsSel();
+}
+
+// 체크박스 선택 상태 → "선택 삭제" 버튼 표시 (fromAll: 전체선택 체크박스에서 호출)
+export function updatePMItemsSel(fromAll) {
+  const boxes = [...document.querySelectorAll('#pmi-tbody .pmi-check')];
+  const all = $('pmi-check-all');
+  if (fromAll) boxes.forEach((b) => { b.checked = all.checked; });
+  const n = boxes.filter((b) => b.checked).length;
+  if (all && !fromAll) all.checked = boxes.length > 0 && n === boxes.length;
+  const btn = $('pmi-bulk-del');
+  if (btn) { btn.style.display = n ? '' : 'none'; btn.textContent = `선택 삭제 (${n})`; }
+}
+
+export async function deleteSelectedPMItems() {
+  const ids = [...document.querySelectorAll('#pmi-tbody .pmi-check:checked')].map((b) => Number(b.value));
+  if (!ids.length) return;
+  if (!confirm(`선택한 점검 항목 ${ids.length}개를 삭제하시겠습니까?`)) return;
+  const results = await Promise.allSettled(ids.map((id) => apiFirst(['pm/master/delete'], { method: 'POST', body: JSON.stringify({ id }) })));
+  const failed = results.filter((r) => r.status === 'rejected');
+  await loadPMMasterList();
+  if (failed.length) showToast(`${ids.length - failed.length}개 삭제, ${failed.length}개 실패 — 점검 실적 이력이 있는 항목은 삭제할 수 없습니다.`, 'error');
+  else showToast(`✅ ${ids.length}개 삭제 완료`);
 }
 
 export async function saveInlineItemModal() {
@@ -1331,7 +1355,7 @@ export async function deletePMItemInModal(id) {
   try {
     await apiFirst(['pm/master/delete'], { method: 'POST', body: JSON.stringify({ id }) });
     await loadPMMasterList();
-  } catch (error) { showToast(`삭제 실패: ${error.message}`, 'error'); }
+  } catch (error) { showToast(`삭제 실패: 점검 실적 이력이 있는 항목은 삭제할 수 없습니다. (${error.message})`, 'error'); }
 }
 
 export async function uploadPMItemPhoto(input, targetId) {
