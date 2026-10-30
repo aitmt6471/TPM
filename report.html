@@ -1395,10 +1395,8 @@
 
     async function api(path, opts = {}) {
       const res = await fetch(BASE + path, {
-        headers: {
-          "Content-Type": "application/json",
-          "ngrok-skip-browser-warning": "true"
-        },
+        // GET은 커스텀 헤더 없이 보내 CORS 사전요청(OPTIONS, 약 1초)을 피함
+        headers: opts.body ? { "Content-Type": "application/json" } : {},
         ...opts
       });
       if (!res.ok) {
