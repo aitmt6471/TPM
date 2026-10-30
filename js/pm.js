@@ -1352,8 +1352,7 @@ export async function saveInlineItemModal() {
 }
 
 export async function deletePMItemInModal(id) {
-  if (!confirm('점검 항목을 삭제하시겠습니까?
-해당 항목의 점검 실적 이력도 함께 삭제됩니다.')) return;
+  if (!confirm('점검 항목을 삭제하시겠습니까?\n해당 항목의 점검 실적 이력도 함께 삭제됩니다.')) return;
   try {
     await apiFirst(['pm/master/delete'], { method: 'POST', body: JSON.stringify({ id }) });
     await loadPMMasterList();
