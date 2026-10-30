@@ -384,8 +384,17 @@ export function syncEquipPhotoPreview() {
   else { img.removeAttribute('src'); img.onerror = null; img.style.display = 'none'; ph.style.display = ''; btn.style.display = 'none'; }
 }
 
+// 화면캡처(Win+Shift+S 등) 후 설비 등록 모달에서 Ctrl+V → 사진으로 업로드
+document.addEventListener('paste', (e) => {
+  if (!$('modal-equip-form')?.classList.contains('open')) return;
+  const file = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith('image/'));
+  if (!file) return;
+  e.preventDefault();
+  uploadEquipPhoto(file);
+});
+
 export async function uploadEquipPhoto(input) {
-  const file = input.files?.[0];
+  const file = input instanceof File ? input : input.files?.[0];
   if (!file) return;
   $('equip-photo-status').textContent = '업로드 중...';
   try {

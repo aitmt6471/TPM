@@ -310,6 +310,7 @@ export function openCopyFromEquip() {
   if ($('copy-dst-label')) $('copy-dst-label').textContent = selectedPMEquip;
   if ($('copy-preview')) $('copy-preview').innerHTML = '';
   if ($('copy-status')) $('copy-status').textContent = '';
+  document.body.appendChild($('modal-pm-copy')); // 다른 모달/슬라이드오버보다 항상 앞에 표시
   openModal('modal-pm-copy');
 }
 
